@@ -1,0 +1,6 @@
+type: ${SERVICE_TYPE}
+nameService: ${SERVICE_NAME}
+nameMonitor: ${SERVICE_MONITOR}
+namespace: ${SERVICE_NAMESPACE}
+target: ${SERVICE_TARGET}
+blackboxtype: ${BLACKBOXTYPE}

@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: {{ .Values.nameService }}
+    app.kubernetes.io/name: {{ .Values.nameService }}
+    group: prometheus
+    template: {{ .Values.nameMonitor }}
+  name: {{ .Values.nameMonitor }}
+  namespace: {{ .Values.namespace }}
+spec:
+{{- if eq .Values.type "metrics" }}
+{{- include "metrics" . | nindent 4 }}
+{{- else }}
+{{- include "blackbox" . | nindent 4}}
+{{ end -}}
+

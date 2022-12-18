@@ -1,0 +1,14 @@
+apiVersion : v2
+name       : ServiceMonitor
+type       : application
+description: Service monitor for ZiiOT Platform
+version    : 1.0.0
+appVersion: 1.0.0
+
+
+keywords:
+  - servicemonitor
+
+
+maintainers:
+  - name : Valentin Kozlov

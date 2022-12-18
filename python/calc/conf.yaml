@@ -1,0 +1,37 @@
+File:
+  create: false
+  csvFileName: ./csv/file.csv
+
+Openshift:
+  enable: true
+  project: test-project
+  urlMetadata: https://example.com/calc
+  EngineMvel: 
+    name: calc-engine
+    replicas: 2
+  ProviderUDL: 
+    name: data-engine
+    replicas: 1
+  CmMetadata: 
+    name: metadata-engine
+    replicas: 4
+
+Keycloak:
+  clientID: test-client
+  clientSecret: Pa$$w0rd
+  authUrl: https://sso.keycloak.com/auth/realms/test-project
+
+Redis:
+  enable: true
+  url: redis-test-project.example.com
+  port: 443
+  ssl: true
+  ssl_certfile: ./redis-crt/redis.crt
+  ssl_keyfile: ./redis-crt/redis.key
+  ssl_ca_certs: ./redis-crt/ca.crt
+
+Postgres:
+  dbname: metadata-engine
+  user: stolonUser
+  password: $trongTestPa$$w0rd
+  host: postgres01.test-project

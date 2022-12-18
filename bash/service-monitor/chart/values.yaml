@@ -1,0 +1,4 @@
+type: metrics
+name: test-services
+namespace: prod
+target: /test-services/metrics
