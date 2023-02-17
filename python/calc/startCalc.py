@@ -9,11 +9,13 @@ import yaml
 from datetime import datetime
 import subprocess
 import sys
+from datetime import datetime
 
+start = datetime.now()
 
 def getAnswer():
     while True:
-        answer = input("Ответ: ")
+        answer = input("Ответ:").encode("utf-8")
         if answer != "yes" and answer != "no":
             print("Введите \"yes\" для продолжения или \"no\" для завершения скрипта")
         elif answer == "no":
@@ -23,12 +25,11 @@ def getAnswer():
 
 
 def getAuthToken():
-    uri = configuration["Keycloak"]["authUrl"]
+    uri = configuration["KeycloakConf"]["authUrl"]
     authUri = f"{uri}/protocol/openid-connect/token"
-    authCreds = {
-        "client_id": configuration["Keycloak"]["clientID"],
-        "client_secret": configuration["Keycloak"]["clientSecret"],
-        "grant_type": "client_credentials"}
+    authCreds = {"client_id": configuration["KeycloakConf"]["clientID"],
+                 "client_secret": configuration["KeycloakConf"]["clientSecret"],
+                 "grant_type": "client_credentials"}
     response = requests.post(authUri, data=authCreds)
     if 200 == response.status_code:
         token = response.json()["access_token"]
@@ -38,15 +39,15 @@ def getAuthToken():
 
 
 def redis_clear():
-    if configuration["Redis"]["enable"]:
+    if configuration["RedisConf"]["enable"]:
         ssl_conn = redis.Redis(
-            host=configuration["Redis"]["url"],
-            port=configuration["Redis"]["port"],
-            ssl=configuration["Redis"]["ssl"],
-            ssl_certfile=configuration["Redis"]["ssl_certfile"],
-            ssl_keyfile=configuration["Redis"]["ssl_keyfile"],
+            host=configuration["RedisConf"]["url"],
+            port=configuration["RedisConf"]["port"],
+            ssl=configuration["RedisConf"]["ssl"],
+            ssl_certfile=configuration["RedisConf"]["ssl_certfile"],
+            ssl_keyfile=configuration["RedisConf"]["ssl_keyfile"],
             ssl_cert_reqs="required",
-            ssl_ca_certs=configuration["Redis"]["ssl_ca_certs"],
+            ssl_ca_certs=configuration["RedisConf"]["ssl_ca_certs"],
         )
         keys_select = ssl_conn.keys("zif-cm*")
         for key in keys_select:
@@ -55,8 +56,7 @@ def redis_clear():
         if len(keys_after) == 0:
             print("Очистка Redis кэша завершена.")
     else:
-        print(
-            """Проведите очистку redis кэша вручную, перейдя в консоль контейнера
+        print("""Проведите очистку redis кэша вручную, перейдя в консоль контейнера
         введите следующую команду:
         redis-cli KEYS "zif-cm-*" | xargs redis-cli DEL
         По окончанию процедуры, подтвердите вводом \"yes\" для продолжения или \"no\"
@@ -67,10 +67,10 @@ def redis_clear():
 
 def connectDB(command):
     with closing(psycopg2.connect(
-                 dbname=configuration["Postgres"]["dbname"],
-                 user=configuration["Postgres"]["user"],
-                 password=configuration["Postgres"]["password"],
-                 host=configuration["Postgres"]["host"])) as conn:
+                 dbname=configuration["PostgresConf"]["dbname"],
+                 user=configuration["PostgresConf"]["user"],
+                 password=configuration["PostgresConf"]["password"],
+                 host=configuration["PostgresConf"]["host"])) as conn:
         with conn.cursor() as cursor:
             cursor.execute(command)
             res = cursor.fetchall()
@@ -85,40 +85,18 @@ def runBash(path):
 
 
 # перечень таблиц для очистки расчетов
-tableForCleaning = (
-    'TaskExecutionStatuses',
-    'RunningStreamingCalculationTasks',
-    'RunningRecalculationTasksForStreamingCalculations',
-    'RunningRecalculationTasksForPeriodicCalculations',
-    'RunningPeriodicCalculationTasks',
-    'RecalculationTasks',
-    'Parameters',
-    'Parameter_s',
-    'Parameter_h',
-    'ImportProcessData',
-    'Groups',
-    'ExecutionStatus_s',
-    'ExecutionConfiguration_s',
-    'ExecutionConfiguration_h',
-    'Code_s',
-    'Code_h',
-    'Calculations',
-    'Calculation_s',
-    'Calculation_h',
-    'CalculationVersions',
-    'CalculationVersionMigrations',
-    'CalculationTasks',
-    'CalculationTask_s',
-    'CalculationTask_h',
-    'CalculationTaskTriggerParameterLink',
-    'CalculationTaskLink',
-    'CalculationParameterLink',
-    'CalculationMigrations',
-    'CalculationGroup_s',
-    'CalculationGroup_h',
-    'CalculationGroupLinks',
-    'CalculationGroupLink',
-    'CalculationConfigurations')
+tableForCleaning = ('TaskExecutionStatuses', 'RunningStreamingCalculationTasks',
+                    'RunningRecalculationTasksForStreamingCalculations',
+                    'RunningRecalculationTasksForPeriodicCalculations',
+                    'RunningPeriodicCalculationTasks', 'RecalculationTasks',
+                    'Parameters', 'Parameter_s', 'Parameter_h', 'ImportProcessData',
+                    'Groups', 'ExecutionStatus_s', 'ExecutionConfiguration_s',
+                    'ExecutionConfiguration_h', 'Code_s', 'Code_h', 'Calculations',
+                    'Calculation_s', 'Calculation_h', 'CalculationVersions',
+                    'CalculationVersionMigrations', 'CalculationTasks', 'CalculationTask_s',
+                    'CalculationTask_h', 'CalculationTaskTriggerParameterLink', 'CalculationTaskLink',
+                    'CalculationParameterLink', 'CalculationMigrations', 'CalculationGroup_s', 'CalculationGroup_h',
+                    'CalculationGroupLinks', 'CalculationGroupLink', 'CalculationConfigurations')
 
 # путь до bash скриптов
 bashCheckPermission = "./bash/oc_check_permission.sh"
@@ -197,28 +175,24 @@ if configuration["File"]["create"]:
         file_writer = csv.writer(w_file, delimiter=",", lineterminator="\r\n")
         for row in getCalcProperties:
             file_writer.writerow(row)
-else:
-    answer = input(
-        "Сделать бэкап расчетных свойств в отдельный файл? \"yes\" or \"no\": ")
-    if answer == "yes":
-        getCalcProperties = connectDB(selectCalcProperties)
-        with open(f"./backup/propertiesCalc-backup-{d}.csv", mode="w", encoding='utf-8') as w_file:
-            file_writer = csv.writer(
-                w_file, delimiter=",", lineterminator="\r\n")
-            for row in getCalcProperties:
-                file_writer.writerow(row)
+answer = input("Сделать бэкап расчетных свойств в отдельный файл? \"yes\" or \"no\": ")
+if answer == "yes":
+    getCalcProperties = connectDB(selectCalcProperties)
+    with open(f"./backup/propertiesCalc-backup-{d}.csv", mode="w", encoding='utf-8') as w_file:
+        file_writer = csv.writer(w_file, delimiter=",", lineterminator="\r\n")
+        for row in getCalcProperties:
+            file_writer.writerow(row)
 
 # Вызов функции очистки кэша Redis
 redis_clear()
 
 # очистка базы сервиса расчетов
-print(
-    f"Проверьте файл с расчетными свойствами по пути: {file}. Для продолжения введите \"yes\". ")
+print(f"Проверьте файл с расчетными свойствами по пути: {file}. Для продолжения введите \"yes\". ")
 getAnswer()
-conn = psycopg2.connect(dbname=configuration["Postgres"]["dbname"],
-                        user=configuration["Postgres"]["user"],
-                        password=configuration["Postgres"]["password"],
-                        host=configuration["Postgres"]["host"])
+conn = psycopg2.connect(dbname=configuration["PostgresConf"]["dbname"],
+                        user=configuration["PostgresConf"]["user"],
+                        password=configuration["PostgresConf"]["password"],
+                        host=configuration["PostgresConf"]["host"])
 with conn.cursor() as cursor:
     conn.autocommit = True
     for table in tableForCleaning:
@@ -235,21 +209,45 @@ else:
     getAnswer()
 
 print("Импортирование расчетных свойств...")
-with open(configuration["File"]["csvFileName"]) as fileName:
+with open(configuration["File"]["csvFileName"], mode="r", encoding='utf-8') as fileName, open(f"./logs/log-{d}.csv", mode="w", encoding='utf-8') as w_file:
+    fileWriter = csv.writer(w_file, )
     fileRead = csv.reader(fileName)
     url = configuration["Openshift"]["urlMetadata"]
+    count = 0
+    token = getAuthToken()
     for row in fileRead:
+        count += 1
+        if count % 10 == 0:
+            token = getAuthToken()
         rowID = row[0]
         print(f"Расчетное свойство: {rowID}")
         requestText = f"{url}/v3/properties/{rowID}/import"
         data = ''
         res = requests.post(requestText, headers={
-            "acept": "*/*",
-            "Authorization": "Bearer " + getAuthToken()
-        }, data=json.dumps(data)
-        ).status_code
-        print(f"Статус: {res}")
+                                "acept": "*/*",
+                                "Authorization": f"Bearer {token}"
+                                }, data=json.dumps(data)
+                            ).status_code
+        print(f"{count}.Статус: {res}")
+        if res == 404:
+            urlOM = configuration["Openshift"]["urlOM"]
+            requestText = f"{urlOM}/properties/{rowID}/configuration"
+            data = ''
+            resOM = requests.get(requestText, headers={
+                                                "acept": "*/*",
+                                                "Authorization": f"Bearer {token}"
+                                                }, data=json.dumps(data)
+                                ).status_code
+            if resOM == 404:
+                fileWriter.writerow([f"{rowID}"])
 with open(configuration["File"]["csvFileName"]) as fileName:
     row_count = sum(1 for line in fileName)
 print(f"""Импортирование завершено.
 Было импортированно {row_count} свойства.""")
+
+stop = datetime.now()   
+delta = stop - start
+durationInSeconds = int(delta.total_seconds())
+durationInMinutes = int(divmod(durationInSeconds, 60)[0])
+durationInHours = divmod(durationInSeconds, 3600)[0]
+print(f"Время выполнения скрипта(часы:минуты:секунды):{durationInHours}:{durationInMinutes}:{durationInSeconds}")   

@@ -1,0 +1,6 @@
+# адрес до графаны, без закрывающего / в конце
+urlGrafana: https://grafana.com
+# ключ от API который генерируется в админ панели в configuration/API Keys
+APIToken: kakoytoStrashniyToken
+# путь куда сохранять json дашбордов, без закрывающего / в конце
+Path: ./dashboards
